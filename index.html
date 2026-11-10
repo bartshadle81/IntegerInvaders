@@ -55,7 +55,8 @@ body::after{content:'';position:fixed;inset:0;background:repeating-linear-gradie
 #gameCanvas{position:absolute;top:0;left:0;width:100%;height:100%;}
 
 /* HUD */
-#gameHud{position:absolute;top:0;left:0;right:0;display:flex;justify-content:space-between;align-items:flex-start;padding:0.15rem 1rem;background:linear-gradient(180deg,rgba(0,8,20,0.95),transparent);z-index:10;pointer-events:none;}
+#topStack{position:absolute;top:0;left:0;right:0;z-index:10;pointer-events:none;}
+#gameHud{position:relative;display:flex;justify-content:space-between;align-items:flex-start;padding:0.15rem 1rem;background:linear-gradient(180deg,rgba(0,8,20,0.95),transparent);z-index:10;pointer-events:none;}
 .hud-block{text-align:center;}
 .hud-label{font-size:0.3rem;color:rgba(255,255,255,0.4);letter-spacing:0.12em;margin-bottom:0.1rem;}
 .hud-val{font-size:clamp(0.5rem,2vw,0.7rem);color:var(--green);text-shadow:0 0 8px var(--green);}
@@ -66,13 +67,13 @@ body::after{content:'';position:fixed;inset:0;background:repeating-linear-gradie
 .life-icon{font-size:0.55rem;}
 
 /* SLOWMO indicator */
-#slowmoBar{position:absolute;top:70px;left:50%;transform:translateX(-50%);z-index:10;display:none;text-align:center;}
+#slowmoBar{position:absolute;bottom:4px;left:50%;transform:translateX(-50%);z-index:10;display:none;text-align:center;}
 .slowmo-label{font-size:0.35rem;color:var(--cyan);margin-bottom:3px;}
 .slowmo-track{width:120px;height:6px;background:rgba(0,245,255,0.15);border:1px solid rgba(0,245,255,0.3);}
 .slowmo-fill{height:100%;background:var(--cyan);box-shadow:0 0 8px var(--cyan);transition:width 0.1s linear;}
 
 /* EQUATION BAR */
-#eqBar{position:absolute;bottom:0;left:0;right:0;background:linear-gradient(0deg,rgba(0,8,20,0.97),rgba(0,8,20,0.85));padding:0.2rem 1rem 0.3rem;z-index:10;text-align:center;pointer-events:none;}
+#eqBar{position:relative;background:linear-gradient(180deg,rgba(0,8,20,0.85),rgba(0,8,20,0.6));border-bottom:1px solid rgba(57,255,20,0.25);padding:0.2rem 1rem 0.3rem;text-align:center;pointer-events:none;}
 .eq-label{font-size:0.3rem;color:rgba(57,255,20,0.5);letter-spacing:0.15em;margin-bottom:0.2rem;}
 .eq-text{font-size:clamp(0.9rem,3.5vw,1.5rem);color:var(--green);text-shadow:0 0 16px var(--green),0 0 32px rgba(57,255,20,0.3);}
 .eq-hint{font-size:0.28rem;color:rgba(255,255,255,0.3);margin-top:0.15rem;font-family:'Nunito',sans-serif;font-weight:700;}
@@ -200,6 +201,7 @@ body::after{content:'';position:fixed;inset:0;background:repeating-linear-gradie
 <div class="screen hidden" id="gameScreen">
   <canvas id="gameCanvas"></canvas>
 
+  <div id="topStack">
   <div id="gameHud">
     <div class="hud-block">
       <div class="hud-label">SCORE</div>
@@ -223,19 +225,20 @@ body::after{content:'';position:fixed;inset:0;background:repeating-linear-gradie
       <div class="lives-row" id="hudLives"></div>
     </div>
   </div>
-  <div style="position:absolute;top:58px;left:0;right:0;text-align:center;z-index:10;pointer-events:none;">
+  <div id="eqBar">
+    <div class="eq-label">SHOOT THE INVADER WITH THE CORRECT ANSWER</div>
+    <div class="eq-text" id="eqText">? + ? = ?</div>
+    <div class="eq-hint">← → ARROWS TO AIM &nbsp;|&nbsp; SPACEBAR TO SHOOT</div>
+  </div>
+  </div>
+
+  <div id="streakWrap" style="position:absolute;top:110px;left:0;right:0;text-align:center;z-index:10;pointer-events:none;">
     <span id="hudStreak" style="font-size:0.45rem;font-family:'Press Start 2P',monospace;text-shadow:0 0 8px currentColor;transition:color 0.2s;"></span>
   </div>
 
   <div id="slowmoBar">
     <div class="slowmo-label">⏱ SLOW-MO</div>
     <div class="slowmo-track"><div class="slowmo-fill" id="slowmoFill" style="width:100%"></div></div>
-  </div>
-
-  <div id="eqBar">
-    <div class="eq-label">DESTROY THE INVADER CARRYING THE CORRECT ANSWER</div>
-    <div class="eq-text" id="eqText">? + ? = ?</div>
-    <div class="eq-hint">← → ARROWS TO AIM &nbsp;|&nbsp; SPACEBAR TO SHOOT</div>
   </div>
 
   <div id="overlay" class="hidden">
@@ -273,7 +276,7 @@ body::after{content:'';position:fixed;inset:0;background:repeating-linear-gradie
 (function(){
   var TRIM=150;
   function lockH(){
-    var h=(window.innerHeight-TRIM)+'px';
+    var h=Math.max(340,window.innerHeight-TRIM)+'px';
     document.documentElement.style.height=h;
     document.body.style.height=h;
     document.documentElement.style.overflow='hidden';
@@ -635,7 +638,11 @@ function spawnWave(){
 
   var cellW=Math.min(90, (G.W-40)/cols);
   var startX=(G.W-(cols*cellW))/2+cellW/2;
-  var startY=110;
+  var stackEl=document.getElementById('topStack');
+  var stackH=Math.max(stackEl?stackEl.offsetHeight:0,90);
+  var startY=stackH+44;
+  var sw=document.getElementById('streakWrap');
+  if(sw) sw.style.top=(stackH+4)+'px';
 
   var wrongPool=G.curQ.choices.filter(function(c){return c!==G.curQ.ans;});
 
@@ -732,7 +739,7 @@ function shoot(){
   if(!target||target.dead)return;
   sfxShoot();
   // spawn bullet
-  G.bullets.push({x:G.playerX,y:G.H-100,tx:target.x,ty:target.y,speed:12,target:G.aimIdx});
+  G.bullets.push({x:G.playerX,y:G.H-50,tx:target.x,ty:target.y,speed:12,target:G.aimIdx});
 }
 
 // ── Game loop ──────────────────────────────────
@@ -760,7 +767,7 @@ function update(dt){
     iv.frameT+=dt;
     if(iv.frameT>8){iv.frame=1-iv.frame;iv.frameT=0;}
     // reached bottom?
-    if(iv.y>G.H-120){
+    if(iv.y>G.H-70){
       if(iv.isAnswer){
         loseLife();
       } else {
@@ -813,7 +820,7 @@ function update(dt){
     pw.y+=1.5*dt;
     if(pw.y>G.H)G.powerups.splice(k,1);
     // player catch
-    if(Math.abs(pw.x-G.playerX)<40&&Math.abs(pw.y-(G.H-90))<30){
+    if(Math.abs(pw.x-G.playerX)<40&&Math.abs(pw.y-(G.H-40))<30){
       activateSlowmo();
       G.powerups.splice(k,1);
     }
@@ -929,7 +936,7 @@ function draw(){
   // ground line
   ctx.strokeStyle='rgba(57,255,20,0.3)';
   ctx.lineWidth=1;
-  ctx.beginPath();ctx.moveTo(0,H-100);ctx.lineTo(W,H-100);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(0,H-50);ctx.lineTo(W,H-50);ctx.stroke();
 
   // particles
   G.particles.forEach(function(p){
@@ -1039,7 +1046,7 @@ function draw(){
 }
 
 function drawPlayer(ctx,W,H){
-  var x=G.playerX, y=H-88;
+  var x=G.playerX, y=H-38;
   var theme=currentTheme();
   var skin=theme.cannon;
   var pri=G.slowmo?'#00f5ff':skin.primary;
